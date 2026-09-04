@@ -1,10 +1,10 @@
 # Marketplace submission draft
 
-Proposed title: `[Plugin]: Hyper`
+Title: `[Plugin]: Hyper`
 
-Proposed repository: `https://github.com/digitalbase/omarchy-hyper`.
-The repository must be published before submitting. Owner confirmation of the
-checklist is pending. The issue body below describes the intended submission.
+Repository: `https://github.com/digitalbase/omarchy-hyper`.
+The owner approved public publication under MIT and the submission checklist.
+The issue body below is prepared for the marketplace.
 
 ---
 

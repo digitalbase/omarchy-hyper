@@ -18,7 +18,11 @@ python3 install.py
 
 This links the checkout to `~/.config/omarchy/plugins/digitalbase.hyper` and enables the ✦ bar widget. Keep the checkout in place. No root access or additional keyboard daemon is needed. If developing through the symlink, run `omarchy restart shell` after QML changes, because the shell may retain cached components.
 
-After publishing this repository, it can also be installed with Omarchy's normal `omarchy plugin add <repository-url> --enable --yes` command.
+Install from GitHub with Omarchy's plugin manager:
+
+```sh
+omarchy plugin add https://github.com/digitalbase/omarchy-hyper --enable --yes
+```
 
 ## Use
 
