@@ -28,6 +28,8 @@ Panel {
   property var selectedApp: null
   property var apps: []
   property var catalog: []
+  readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
+  readonly property color foreground: bar ? bar.foreground : Color.foreground
   readonly property var library: bar && bar.shell ? bar.shell.appLibrary : null
   readonly property var rows: {
     var result = []
@@ -123,17 +125,41 @@ Panel {
       }
       ColumnLayout {
         anchors.fill: parent
-        spacing: 12
+        spacing: Style.space(10)
         RowLayout {
           Layout.fillWidth: true
-          Text { text: "✦"; color: Color.accent; font.pixelSize: 36 }
+          spacing: Style.space(14)
+          Text {
+            text: "✦"
+            color: root.foreground
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.display
+          }
           ColumnLayout {
             Layout.fillWidth: true
-            Text { text: "Hyper"; color: Color.foreground; font.family: Style.font.family; font.pixelSize: 24; font.bold: true }
-            Text { text: root.state.active ? "Caps Lock is your Hyper key" : "Your apps, one shortcut away"; color: Color.foreground; opacity: 0.65; font.pixelSize: 13 }
+            spacing: Style.space(2)
+            Text {
+              Layout.fillWidth: true
+              text: "Hyper"
+              color: root.foreground
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.title
+              font.bold: true
+              elide: Text.ElideRight
+            }
+            Text {
+              Layout.fillWidth: true
+              text: root.state.active ? "Caps Lock is your Hyper key" : "Caps Lock is off for Hyper"
+              color: root.state.active ? Color.accent : root.foreground
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: true
+              elide: Text.ElideRight
+            }
           }
         }
         Toggle {
+          fontFamily: root.fontFamily
           Layout.fillWidth: true
           label: "Use Caps Lock as Hyper"
           description: root.state.active ? "On · Hold Caps Lock for ✦ shortcuts" : "Off · Caps Lock toggles uppercase letters"
@@ -145,16 +171,18 @@ Panel {
           Layout.fillWidth: true
           visible: root.error !== ""
           text: root.error; textFormat: Text.PlainText
-          wrapMode: Text.Wrap; color: Color.accent; font.pixelSize: 13
+          wrapMode: Text.Wrap; color: Color.accent; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall
         }
         RowLayout {
           Layout.fillWidth: true
           Text {
             Layout.fillWidth: true
             text: root.picking ? (root.selectedApp ? "Choose a key" : "Choose an app") : "Your shortcuts · " + root.rows.length
-            color: Color.foreground; font.pixelSize: 15; font.bold: true
+            color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body; font.bold: true
           }
           Button {
+            fontFamily: root.fontFamily
+            fontSize: Style.font.bodySmall
             text: root.picking ? "Back" : "+ Add shortcut"; focusable: true; bordered: true
             onClicked: { root.picking = !root.picking; root.selectedApp = null; search.text = ""; root.refreshApps() }
           }
@@ -171,7 +199,7 @@ Panel {
           Layout.fillWidth: true
           Text {
             text: root.selectedApp ? root.selectedApp.name : ""
-            textFormat: Text.PlainText; color: Color.accent; font.pixelSize: 18
+            textFormat: Text.PlainText; color: Color.accent; font.family: root.fontFamily; font.pixelSize: Style.font.subtitle
           }
           TextField {
             id: shortcut
@@ -179,8 +207,10 @@ Panel {
             placeholderText: "Key, e.g. A or Shift+A"
             onAccepted: save.clicked()
           }
-          Text { text: "Letters, digits, F1–F12, Return, Space or arrows."; color: Color.foreground; opacity: 0.65; font.pixelSize: 12 }
+          Text { text: "Letters, digits, F1–F12, Return, Space or arrows."; color: root.foreground; opacity: 0.65; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
           Button {
+            fontFamily: root.fontFamily
+            fontSize: Style.font.bodySmall
             id: save
             text: "Save ✦ shortcut"; focusable: true; bordered: true
             enabled: !backend.running && shortcut.text.trim() !== ""
@@ -199,7 +229,7 @@ Panel {
           ListView {
             id: list
             model: root.picking ? root.apps : root.rows
-            spacing: 4
+            spacing: Style.space(4)
             delegate: Rectangle {
               required property var modelData
               width: list.width
@@ -210,7 +240,7 @@ Panel {
               RowLayout {
                 anchors.fill: parent
                 anchors.margins: 6
-                spacing: 10
+                spacing: Style.space(10)
                 Image {
                   Layout.preferredWidth: Style.font.iconLarge
                   Layout.preferredHeight: Style.font.iconLarge
@@ -222,16 +252,16 @@ Panel {
                 }
                 ColumnLayout {
                   Layout.fillWidth: true
-                  spacing: 2
+                  spacing: Style.space(2)
                   Text {
                     Layout.fillWidth: true
                     text: modelData.name
                     textFormat: Text.PlainText
                     elide: Text.ElideRight
-                    color: Color.foreground
-                    font.family: Style.font.family
-                    font.pixelSize: Style.font.heading
-                    font.weight: Font.Medium
+                    color: root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.body
+                    font.bold: true
                   }
                   Text {
                     Layout.fillWidth: true
@@ -239,9 +269,9 @@ Panel {
                     text: modelData.description || ""
                     textFormat: Text.PlainText
                     elide: Text.ElideRight
-                    color: Color.foreground
+                    color: root.foreground
                     opacity: 0.55
-                    font.family: Style.font.family
+                    font.family: root.fontFamily
                     font.pixelSize: Style.font.caption
                   }
                 }
@@ -249,10 +279,12 @@ Panel {
                   visible: !root.picking
                   text: "✦ " + (modelData.key || "custom")
                   color: Color.accent
-                  font.family: Style.font.family
-                  font.pixelSize: 13
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.bodySmall
                 }
                 Button {
+            fontFamily: root.fontFamily
+            fontSize: Style.font.bodySmall
                   visible: root.picking || !modelData.external
                   text: root.picking ? "Choose" : "Remove"
                   focusable: true; enabled: !backend.running
@@ -263,7 +295,7 @@ Panel {
                 }
                 Text {
                   visible: !root.picking && !!modelData.external
-                  text: "Config"; color: Color.foreground; opacity: 0.5; font.pixelSize: 11
+                  text: "Config"; color: root.foreground; opacity: 0.5; font.family: root.fontFamily; font.pixelSize: Style.font.caption
                 }
               }
             }
@@ -271,7 +303,7 @@ Panel {
               anchors.centerIn: parent
               visible: list.count === 0
               text: root.picking ? "No matching apps" : "Add your first app shortcut"
-              color: Color.foreground; opacity: 0.6
+              color: root.foreground; opacity: 0.6
             }
           }
         }
@@ -279,7 +311,7 @@ Panel {
         Text {
           Layout.fillWidth: true
           text: "Turning Hyper off restores normal Caps Lock.\nYour shortcuts stay saved. Config rows come from Hyprland."
-          wrapMode: Text.WordWrap; color: Color.foreground; opacity: 0.55; font.pixelSize: 12
+          wrapMode: Text.WordWrap; color: root.foreground; opacity: 0.55; font.family: root.fontFamily; font.pixelSize: Style.font.caption
         }
 
       }
