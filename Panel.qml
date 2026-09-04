@@ -23,6 +23,9 @@ Panel {
   }
   property var state: ({shortcuts: {}, external: [], active: false, options: null})
   property string error: ""
+  property bool statusLoaded: false
+  readonly property color statusColor: state.active ? "#5fd75f" : foreground
+  readonly property string setupStatus: !statusLoaded ? "Checking keyboard…" : (state.active ? "Set up · Hyper enabled" : "Off · Normal Caps Lock")
   property var conflicts: []
   property bool picking: false
   property string action: "status"
@@ -92,6 +95,7 @@ Panel {
           var result = JSON.parse(text)
           if (result.ok) {
             root.state = result
+            root.statusLoaded = true
             if (root.action === "assign" || root.action === "overwrite") { root.picking = false; root.selectedApp = null }
           }
           else { root.error = result.error; root.conflicts = result.conflicts || [] }
@@ -129,20 +133,47 @@ Panel {
       ColumnLayout {
         anchors.fill: parent
         spacing: Style.space(10)
-        RowLayout {
+        Item {
           Layout.fillWidth: true
-          spacing: Style.space(14)
-          Text {
-            text: "✦"
-            color: root.foreground
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.display * 1.8
-          }
-          ColumnLayout {
-            Layout.fillWidth: true
-            spacing: Style.space(2)
+          implicitHeight: Math.max(headerLabels.implicitHeight, headerActions.implicitHeight)
+
+          Item {
+            id: headerIcon
+            width: Style.font.display
+            height: width
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
             Text {
-              Layout.fillWidth: true
+              anchors.centerIn: parent
+              text: "✦"
+              color: root.foreground
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.display * 1.8
+            }
+            Rectangle {
+              width: Math.max(5, parent.width * 0.34)
+              height: width
+              radius: width / 2
+              anchors.right: parent.right
+              anchors.bottom: parent.bottom
+              color: root.statusColor
+              border.width: 1
+              border.color: Color.popups.background
+            }
+          }
+
+          Column {
+            id: headerLabels
+            anchors.left: headerIcon.right
+            anchors.leftMargin: Style.space(14)
+            anchors.right: headerActions.left
+            anchors.rightMargin: Style.space(10)
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Style.space(2)
+
+            Text {
+              width: parent.width
+              textFormat: Text.PlainText
               text: "Hyper"
               color: root.foreground
               font.family: root.fontFamily
@@ -151,26 +182,38 @@ Panel {
               elide: Text.ElideRight
             }
             Text {
-              Layout.fillWidth: true
-              text: root.state.active ? "On · Caps Lock is Hyper" : "Off · Normal Caps Lock"
-              color: root.state.active ? Color.accent : root.foreground
+              width: parent.width
+              textFormat: Text.PlainText
+              text: root.setupStatus
+              color: root.statusColor
               font.family: root.fontFamily
               font.pixelSize: Style.font.caption
               font.bold: true
               elide: Text.ElideRight
             }
           }
-          ToggleSwitch {
-            checked: !!root.state.active
-            busy: backend.running
-            activeFocusOnTab: true
-            Accessible.name: "Use Caps Lock as Hyper"
-            Accessible.role: Accessible.CheckBox
-            Accessible.checked: checked
-            onToggled: if (!backend.running) root.request([root.state.active ? "disable" : "enable"])
-            Keys.onSpacePressed: toggled()
-            Keys.onReturnPressed: toggled()
+
+          Row {
+            id: headerActions
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Style.space(4)
+            ToggleSwitch {
+              checked: !!root.state.active
+              busy: backend.running || !root.statusLoaded
+              activeFocusOnTab: true
+              Accessible.name: "Use Caps Lock as Hyper"
+              Accessible.role: Accessible.CheckBox
+              Accessible.checked: checked
+              onToggled: if (!busy) root.request([root.state.active ? "disable" : "enable"])
+              Keys.onSpacePressed: toggled()
+              Keys.onReturnPressed: toggled()
+            }
           }
+        }
+        PanelSeparator {
+          Layout.fillWidth: true
+          foreground: root.foreground
         }
         Text {
           Layout.fillWidth: true
