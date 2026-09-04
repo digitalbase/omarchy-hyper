@@ -24,7 +24,7 @@ After publishing this repository, it can also be installed with Omarchy's normal
 
 ## Use
 
-1. Click ✦ on the right of the bar. The panel opens on assigned shortcuts; the full app catalog appears only after choosing Add shortcut. On a new setup, choose **Set up Hyper**.
+1. Click ✦ on the right of the bar. The panel opens on assigned shortcuts; the full app catalog appears only after choosing Add shortcut. Turn on **Use Caps Lock as Hyper**. The toggle reflects the current keyboard configuration.
 2. Choose **Add shortcut**, search for an app, and choose it.
 3. Enter a key such as `A`, `Shift+A`, `Return`, or `F12`, then save.
 4. Hold Caps Lock and press that key to launch the app.
@@ -33,7 +33,9 @@ The picker uses the same app library and hidden-app filters as Omarchy's Apps me
 
 **Config** rows show existing Hyper bindings from Hyprland. Edit those in your existing configuration. Hyper reserves their key combinations and will not replace them. Shortcuts added in this panel can be removed here. To change an assignment, remove it and add its replacement.
 
-If Caps Lock is already mapped to Hyper, setup is skipped and the existing mapping remains owned by your configuration. Otherwise setup overrides Caps Lock options while preserving other keyboard options. **Restore previous Caps Lock behavior** removes that override and reveals your original configuration. Saved shortcuts remain available if you enable Hyper again.
+The **Use Caps Lock as Hyper** toggle is on when Caps Lock is mapped to Hyper, including mappings in your existing Hyprland configuration. Turning it off explicitly restores normal Caps Lock. Turning it on maps Caps Lock to Hyper again. Both choices persist across restarts and preserve your saved shortcuts and unrelated keyboard options.
+
+The plugin writes its override after your existing input configuration. It does not rewrite your personal `input.lua`. Uninstalling removes the override and restores the configuration you had before using the plugin.
 
 ```sh
 omarchy-shell digitalbase.hyper toggle

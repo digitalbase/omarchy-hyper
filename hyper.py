@@ -161,12 +161,13 @@ def apply(data):
 
 def mutate(action, args):
     data = copy.deepcopy(load())
-    if action == 'enable':
+    if action in ('enable', 'disable'):
         current = options()
-        if 'caps:hyper' not in current.split(','):
-            conflicting = [p for p in current.split(',') if 'caps' in p]
-            kept = [p for p in current.split(',') if p and p not in conflicting]
-            data['options'] = ','.join(kept + ['caps:hyper'])
+        # An explicit override also handles Hyper set in an existing input.lua.
+        # Keep layout-switching and other non-Caps options intact.
+        kept = [p for p in current.split(',') if p and 'caps' not in p]
+        target = 'caps:hyper' if action == 'enable' else 'caps:capslock'
+        data['options'] = ','.join(kept + [target])
     elif action == 'restore':
         # Removing the override reveals the user's original input.lua settings.
         data['options'] = None

@@ -113,17 +113,13 @@ Panel {
           }
           Button { text: "Close"; focusable: true; onClicked: root.close() }
         }
-        Text {
+        Toggle {
           Layout.fillWidth: true
-          visible: !root.state.active
-          text: "Use Caps Lock as ✦. Hold it and press a key to launch an app. Caps Lock will stop toggling uppercase letters."
-          wrapMode: Text.WordWrap; color: Color.foreground; font.pixelSize: 14
-        }
-        Button {
-          visible: !root.state.active
-          text: "Set up Hyper"; bordered: true; focusable: true
+          label: "Use Caps Lock as Hyper"
+          description: root.state.active ? "On · Hold Caps Lock for ✦ shortcuts" : "Off · Caps Lock toggles uppercase letters"
+          checked: !!root.state.active
           enabled: !backend.running
-          onClicked: root.request(["enable"])
+          onClicked: root.request([root.state.active ? "disable" : "enable"])
         }
         Text {
           Layout.fillWidth: true
@@ -234,15 +230,10 @@ Panel {
         Item { visible: root.selectedApp !== null; Layout.fillHeight: true }
         Text {
           Layout.fillWidth: true
-          text: root.state.options !== null ? "Hyper setup is managed here." : (root.state.active ? "Hyper is already set up in your Hyprland config.\nRows marked Config are managed in that file." : "Setup preserves your other keyboard settings.")
+          text: "Turning Hyper off restores normal Caps Lock.\nYour shortcuts stay saved. Config rows come from Hyprland."
           wrapMode: Text.WordWrap; color: Color.foreground; opacity: 0.55; font.pixelSize: 12
         }
-        Button {
-          visible: root.state.options !== null
-          text: "Restore previous Caps Lock behavior"; focusable: true
-          enabled: !backend.running
-          onClicked: root.request(["restore"])
-        }
+
       }
     }
   }

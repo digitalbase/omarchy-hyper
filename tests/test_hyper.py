@@ -67,6 +67,16 @@ class HyperTests(unittest.TestCase):
             binding.write_text(binding.read_text() + '\no.bind("MOD3 + code:50", "1Password", "other")')
             self.assertEqual(hyper.configured_physical_key('1Password'), '')
 
+    def test_toggle_overrides_existing_hyper_and_keeps_shortcuts(self):
+        saved = {'version': 1, 'options': None, 'shortcuts': {'A': {'id': 'app', 'name': 'App'}}}
+        with patch.object(hyper, 'load', return_value=saved), patch.object(hyper, 'options', return_value='grp:alts_toggle,caps:hyper'), patch.object(hyper, 'apply') as apply, patch.object(hyper, 'status'):
+            hyper.mutate('disable', [])
+            self.assertEqual(apply.call_args.args[0]['options'], 'grp:alts_toggle,caps:capslock')
+            self.assertEqual(apply.call_args.args[0]['shortcuts'], saved['shortcuts'])
+        with patch.object(hyper, 'options', return_value='grp:alts_toggle,caps:capslock'), patch.object(hyper, 'apply') as apply, patch.object(hyper, 'status'):
+            hyper.mutate('enable', [])
+            self.assertEqual(apply.call_args.args[0]['options'], 'grp:alts_toggle,caps:hyper')
+
     def test_setup_keeps_unrelated_options(self):
         with patch.object(hyper, 'options', return_value='compose:caps,grp:alts_toggle'), patch.object(hyper, 'apply') as apply, patch.object(hyper, 'status'):
             hyper.mutate('enable', [])
