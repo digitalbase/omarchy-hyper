@@ -57,6 +57,16 @@ class HyperTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'already assigned'):
                 hyper.mutate('assign', ['a', 'app', 'App'])
 
+    def test_recovers_multiline_physical_binding_without_guessing(self):
+        root = Path(self.tmp.name)
+        (root / 'hypr').mkdir()
+        binding = root / 'hypr/physical.lua'
+        binding.write_text('o.bind(\n "MOD3 + code:49",\n "1Password", "launch")')
+        with patch.object(hyper, 'CONFIG', root):
+            self.assertEqual(hyper.configured_physical_key('1Password'), 'CODE:49')
+            binding.write_text(binding.read_text() + '\no.bind("MOD3 + code:50", "1Password", "other")')
+            self.assertEqual(hyper.configured_physical_key('1Password'), '')
+
     def test_setup_keeps_unrelated_options(self):
         with patch.object(hyper, 'options', return_value='compose:caps,grp:alts_toggle'), patch.object(hyper, 'apply') as apply, patch.object(hyper, 'status'):
             hyper.mutate('enable', [])

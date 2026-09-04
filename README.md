@@ -24,7 +24,7 @@ After publishing this repository, it can also be installed with Omarchy's normal
 
 ## Use
 
-1. Click ✦ in the bar. On a new setup, choose **Set up Hyper**.
+1. Click ✦ on the right of the bar. The panel opens on assigned shortcuts; the full app catalog appears only after choosing Add shortcut. On a new setup, choose **Set up Hyper**.
 2. Choose **Add shortcut**, search for an app, and choose it.
 3. Enter a key such as `A`, `Shift+A`, `Return`, or `F12`, then save.
 4. Hold Caps Lock and press that key to launch the app.

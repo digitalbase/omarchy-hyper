@@ -19,7 +19,7 @@ Panel {
     function close(): void { root.close() }
     function toggle(): void { root.toggle() }
     function add(): void { root.open(); root.picking = true; root.selectedApp = null; root.refreshApps() }
-    function info(): string { return JSON.stringify({apps: root.apps.length, shortcuts: root.rows.length, error: root.error}) }
+    function info(): string { return JSON.stringify({view: root.picking ? "apps" : "shortcuts", apps: root.apps.length, shortcuts: root.rows, error: root.error}) }
   }
   property var state: ({shortcuts: {}, external: [], active: false, options: null})
   property string error: ""
@@ -49,7 +49,11 @@ Panel {
     backend.command = ["python3", Qt.resolvedUrl("hyper.py").toString().replace(/^file:\/\//, "")].concat(args)
     backend.running = true
   }
-  onOpenedChanged: if (opened) { request(["status"]); refreshApps() }
+  onOpenedChanged: if (opened) {
+    picking = false
+    selectedApp = null
+    request(["status"])
+  }
   Connections {
     target: root.library
     function onAppsChanged() { if (root.opened) root.refreshApps() }

@@ -57,12 +57,36 @@ def options():
     return json.loads(run('hyprctl', 'getoption', 'input:kb_options', '-j'))['str']
 
 
+def configured_physical_key(description):
+    """Recover physical key labels omitted by Hyprland's Lua bind report.
+
+    Read literal declarations only; never execute or import user Lua files.
+    Ambiguous matches stay unknown instead of guessing a key.
+    """
+    matches = set()
+    pattern = re.compile(r'o\.bind\(\s*"([^"\n]+)"\s*,\s*"([^"\n]+)"')
+    for path in (CONFIG / 'hypr').glob('*.lua'):
+        source = re.sub(r'--\[\[.*?\]\]', '', path.read_text(), flags=re.S)
+        source = re.sub(r'^\s*--.*$', '', source, flags=re.M)
+        for combo, name in pattern.findall(source):
+            if name != description or 'MOD3' not in combo.upper():
+                continue
+            physical = re.search(r'code:(\d+)', combo, re.I)
+            if physical:
+                matches.add('CODE:' + physical[1])
+    return next(iter(matches)) if len(matches) == 1 else ''
+
+
 def external_bindings():
     rows = []
     for binding in json.loads(run('hyprctl', 'binds', '-j')):
         mask = binding.get('modmask', 0)
         if mask & 32 and not binding.get('description', '').startswith(PREFIX):
-            rows.append({'key': ('SHIFT+' if mask & 1 else '') + binding.get('key', '').upper(),
+            label = binding.get('key', '').upper()
+            if not label:
+                label = ('CODE:' + str(binding['keycode'])) if binding.get('keycode') else configured_physical_key(binding.get('description', ''))
+            modifiers = ''.join(name + '+' for bit, name in ((64, 'SUPER'), (4, 'CTRL'), (8, 'ALT'), (1, 'SHIFT')) if mask & bit)
+            rows.append({'key': modifiers + label,
                          'name': binding.get('description') or binding.get('arg') or 'Existing binding',
                          'modmask': mask, 'external': True})
     return rows
