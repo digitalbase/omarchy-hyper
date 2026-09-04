@@ -25,7 +25,7 @@ Panel {
   property string error: ""
   property bool statusLoaded: false
   readonly property color statusColor: state.active ? Color.accent : foreground
-  readonly property string setupStatus: !statusLoaded ? "Checking keyboard…" : (state.active ? "Set up · Hyper enabled" : "Off · Normal Caps Lock")
+  readonly property string setupStatus: !statusLoaded ? "Checking keyboard…" : (state.active ? "Set up · ✦ Hyper enabled" : "Off · Normal Caps Lock")
   property var conflicts: []
   property bool picking: false
   property string action: "status"
