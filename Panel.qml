@@ -133,7 +133,7 @@ Panel {
             text: "✦"
             color: root.foreground
             font.family: root.fontFamily
-            font.pixelSize: Style.font.display
+            font.pixelSize: Style.font.display * 1.8
           }
           ColumnLayout {
             Layout.fillWidth: true
@@ -149,7 +149,7 @@ Panel {
             }
             Text {
               Layout.fillWidth: true
-              text: root.state.active ? "Caps Lock is your Hyper key" : "Caps Lock is off for Hyper"
+              text: root.state.active ? "On · Caps Lock is Hyper" : "Off · Normal Caps Lock"
               color: root.state.active ? Color.accent : root.foreground
               font.family: root.fontFamily
               font.pixelSize: Style.font.caption
@@ -157,15 +157,17 @@ Panel {
               elide: Text.ElideRight
             }
           }
-        }
-        Toggle {
-          fontFamily: root.fontFamily
-          Layout.fillWidth: true
-          label: "Use Caps Lock as Hyper"
-          description: root.state.active ? "On · Hold Caps Lock for ✦ shortcuts" : "Off · Caps Lock toggles uppercase letters"
-          checked: !!root.state.active
-          enabled: !backend.running
-          onClicked: root.request([root.state.active ? "disable" : "enable"])
+          ToggleSwitch {
+            checked: !!root.state.active
+            busy: backend.running
+            activeFocusOnTab: true
+            Accessible.name: "Use Caps Lock as Hyper"
+            Accessible.role: Accessible.CheckBox
+            Accessible.checked: checked
+            onToggled: if (!backend.running) root.request([root.state.active ? "disable" : "enable"])
+            Keys.onSpacePressed: toggled()
+            Keys.onReturnPressed: toggled()
+          }
         }
         Text {
           Layout.fillWidth: true
