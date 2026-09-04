@@ -80,6 +80,7 @@ Panel {
     anchors.fill: parent
     bar: root.bar
     text: "✦"
+    fontSize: Style.bar.iconFont * 1.3
     onPressed: root.toggle()
   }
   KeyboardPanel {
