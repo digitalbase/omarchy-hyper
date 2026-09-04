@@ -2,6 +2,8 @@
 
 A native Omarchy shell plugin for Caps Lock app shortcuts. Click ✦ in the bar to set up Hyper, browse launcher apps, and manage shortcuts.
 
+![Hyper panel with setup toggle, app icons, and assigned shortcuts](preview.png)
+
 Hyper uses XKB's dedicated Mod3 modifier. Holding Caps Lock and pressing a mapped key launches the app. Caps Lock no longer toggles capitalization. This follows Raycast's interaction, using Linux's native Hyper modifier instead of emulating macOS modifiers.
 
 Requires Omarchy's Lua-based Hyprland configuration, Quickshell shell, Python 3, `hyprctl`, `uwsm-app`, and `gtk-launch`.
