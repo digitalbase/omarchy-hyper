@@ -23,6 +23,7 @@ Panel {
   }
   property var state: ({shortcuts: {}, external: [], active: false, options: null})
   property string error: ""
+  property var conflicts: []
   property bool picking: false
   property string action: "status"
   property var selectedApp: null
@@ -66,6 +67,7 @@ Panel {
   function request(args) {
     if (backend.running) return
     error = ""
+    conflicts = []
     action = args[0]
     backend.command = ["python3", Qt.resolvedUrl("hyper.py").toString().replace(/^file:\/\//, "")].concat(args)
     backend.running = true
@@ -73,6 +75,7 @@ Panel {
   onOpenedChanged: if (opened) {
     picking = false
     selectedApp = null
+    conflicts = []
     request(["status"])
     refreshApps()
     if (library) library.refreshIcons()
@@ -89,9 +92,9 @@ Panel {
           var result = JSON.parse(text)
           if (result.ok) {
             root.state = result
-            if (root.action === "assign") { root.picking = false; root.selectedApp = null }
+            if (root.action === "assign" || root.action === "overwrite") { root.picking = false; root.selectedApp = null }
           }
-          else root.error = result.error
+          else { root.error = result.error; root.conflicts = result.conflicts || [] }
         } catch (e) { root.error = "Could not read Hyper settings. " + text }
       }
     }
@@ -207,7 +210,8 @@ Panel {
             id: shortcut
             Layout.fillWidth: true
             placeholderText: "Key, e.g. A or Shift+A"
-            onAccepted: save.clicked()
+            onTextChanged: { root.conflicts = []; root.error = "" }
+            onAccepted: if (save.enabled) save.clicked()
           }
           Text { text: "Letters, digits, F1–F12, Return, Space or arrows."; color: root.foreground; opacity: 0.65; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
           Button {
@@ -217,10 +221,18 @@ Panel {
             text: "Save ✦ shortcut"; focusable: true; bordered: true
             enabled: !backend.running && shortcut.text.trim() !== ""
             onClicked: {
-              var k = shortcut.text.trim().toUpperCase()
-              if (root.state.shortcuts[k]) { root.error = "That key is already assigned. Remove its shortcut first."; return }
-              root.request(["assign", k, root.selectedApp.id, root.selectedApp.name])
+              root.request(["assign", shortcut.text, root.selectedApp.id, root.selectedApp.name])
             }
+          }
+          Button {
+            visible: root.conflicts.length > 0
+            text: "Overwrite"
+            fontFamily: root.fontFamily
+            fontSize: Style.font.bodySmall
+            focusable: true
+            bordered: true
+            enabled: !backend.running
+            onClicked: root.request(["overwrite", shortcut.text, root.selectedApp.id, root.selectedApp.name, JSON.stringify(root.conflicts)])
           }
         }
         Controls.ScrollView {
@@ -237,8 +249,27 @@ Panel {
               width: list.width
               height: 52
               radius: 5
-              color: index % 2 ? Qt.rgba(1, 1, 1, 0.035) : "transparent"
+              color: appMouse.containsMouse || activeFocus ? Style.hoverFillFor(root.foreground, Color.accent) : (index % 2 ? Qt.rgba(1, 1, 1, 0.035) : "transparent")
               required property int index
+              activeFocusOnTab: root.picking
+              function chooseApp() {
+                if (!root.picking || backend.running) return
+                root.selectedApp = modelData
+                root.conflicts = []
+                root.error = ""
+                shortcut.text = ""
+                shortcut.forceActiveFocus()
+              }
+              Keys.onReturnPressed: chooseApp()
+              Keys.onSpacePressed: chooseApp()
+              MouseArea {
+                id: appMouse
+                anchors.fill: parent
+                enabled: root.picking && !backend.running
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: parent.chooseApp()
+              }
               RowLayout {
                 anchors.fill: parent
                 anchors.margins: 6
@@ -285,19 +316,13 @@ Panel {
                   font.pixelSize: Style.font.bodySmall
                 }
                 Button {
-            fontFamily: root.fontFamily
-            fontSize: Style.font.bodySmall
-                  visible: root.picking || !modelData.external
-                  text: root.picking ? "Choose" : "Remove"
-                  focusable: true; enabled: !backend.running
-                  onClicked: {
-                    if (root.picking) { root.selectedApp = modelData; shortcut.text = ""; shortcut.forceActiveFocus() }
-                    else root.request(["remove", modelData.key])
-                  }
-                }
-                Text {
-                  visible: !root.picking && !!modelData.external
-                  text: "Config"; color: root.foreground; opacity: 0.5; font.family: root.fontFamily; font.pixelSize: Style.font.caption
+                  fontFamily: root.fontFamily
+                  fontSize: Style.font.bodySmall
+                  visible: !root.picking
+                  text: "Remove"
+                  focusable: true
+                  enabled: !backend.running
+                  onClicked: root.request(["remove", modelData.key])
                 }
               }
             }
@@ -312,7 +337,7 @@ Panel {
         Item { visible: root.selectedApp !== null; Layout.fillHeight: true }
         Text {
           Layout.fillWidth: true
-          text: "Turning Hyper off restores normal Caps Lock.\nYour shortcuts stay saved. Config rows come from Hyprland."
+          text: "Turning Hyper off restores normal Caps Lock.\nYour shortcuts stay saved."
           wrapMode: Text.WordWrap; color: root.foreground; opacity: 0.55; font.family: root.fontFamily; font.pixelSize: Style.font.caption
         }
 

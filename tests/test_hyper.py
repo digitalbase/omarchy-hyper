@@ -53,9 +53,38 @@ class HyperTests(unittest.TestCase):
         self.assertFalse(hyper.GENERATED.exists())
 
     def test_external_shortcut_cannot_be_replaced(self):
-        with patch.object(hyper, 'external_bindings', return_value=[{'key': 'A', 'modmask': 32}]):
+        with patch.object(hyper, 'external_bindings', return_value=[{'key': 'A', 'modmask': 32, 'name': 'Original app'}]):
             with self.assertRaisesRegex(ValueError, 'already assigned'):
                 hyper.mutate('assign', ['a', 'app', 'App'])
+
+    def test_external_overwrite_requires_matching_confirmation(self):
+        existing = [{'key': 'A', 'name': 'Original app'}]
+        confirmation = [{'name': 'Original app', 'external': True, 'submap': ''}]
+        with patch.object(hyper, 'external_bindings', return_value=existing), patch.object(hyper, 'apply') as apply, patch.object(hyper, 'status'):
+            with self.assertRaises(hyper.Conflict) as error:
+                hyper.mutate('assign', ['A', 'new', 'New app'])
+            self.assertIn('Original app', str(error.exception))
+            hyper.mutate('overwrite', ['A', 'new', 'New app', json.dumps(confirmation)])
+            data = apply.call_args.args[0]
+            rendered = hyper.render(data)
+            self.assertLess(rendered.index('hl.unbind("MOD3 + A")'), rendered.index('o.bind('))
+            self.assertEqual(data['shortcuts']['A']['id'], 'new')
+            with self.assertRaises(hyper.Conflict):
+                hyper.mutate('overwrite', ['A', 'new', 'New app', '[]'])
+
+    def test_remove_external_physical_binding_persists_unbind(self):
+        with patch.object(hyper, 'external_bindings', return_value=[{'key': 'CODE:49', 'name': '1Password'}]), patch.object(hyper, 'apply') as apply, patch.object(hyper, 'status'):
+            hyper.mutate('remove', ['CODE:49'])
+            self.assertIn('hl.unbind("MOD3 + code:49")', hyper.render(apply.call_args.args[0]))
+
+    def test_owned_conflict_is_named_and_removal_keeps_external_suppressed(self):
+        data = {'version': 1, 'options': None, 'suppressed': ['A'], 'shortcuts': {'A': {'id': 'old', 'name': 'Old app'}}}
+        with patch.object(hyper, 'load', return_value=data), patch.object(hyper, 'external_bindings', return_value=[]), patch.object(hyper, 'apply') as apply, patch.object(hyper, 'status'):
+            with self.assertRaisesRegex(hyper.Conflict, 'Old app'):
+                hyper.mutate('assign', ['A', 'new', 'New app'])
+            hyper.mutate('remove', ['A'])
+            self.assertEqual(apply.call_args.args[0]['shortcuts'], {})
+            self.assertEqual(apply.call_args.args[0]['suppressed'], ['A'])
 
     def test_recovers_multiline_physical_binding_without_guessing(self):
         root = Path(self.tmp.name)

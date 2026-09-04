@@ -8,7 +8,7 @@ Requires Omarchy's Lua-based Hyprland configuration, Quickshell shell, Python 3,
 
 ## Development
 
-The panel uses the shell's app library, so its picker matches the Apps launcher. A Python helper owns shortcut storage and a separate generated Hyprland Lua file. Existing user bindings are displayed and reserved, never overwritten.
+The panel uses the shell's app library, so its picker matches the Apps launcher. A Python helper owns shortcut storage and a separate generated Hyprland Lua file. Existing user bindings are displayed alongside panel assignments and can be removed or overwritten through generated overrides. Their original Lua files remain intact.
 
 Implementation is split into focused commits: project, configuration backend, panel, and installation with verification.
 
@@ -24,16 +24,18 @@ After publishing this repository, it can also be installed with Omarchy's normal
 
 ## Use
 
-1. Click ✦ on the right of the bar. The panel opens on assigned shortcuts; the full app catalog appears only after choosing Add shortcut. Turn on **Use Caps Lock as Hyper**. The toggle reflects the current keyboard configuration.
-2. Choose **Add shortcut**, search for an app, and choose it.
+1. Click ✦ on the right of the bar. The panel opens on assigned shortcuts; the full app catalog appears only after choosing Add shortcut. Use the toggle in the header to turn Hyper on. The subtitle shows the current on/off state.
+2. Choose **Add shortcut**, search for an app, and click its row.
 3. Enter a key such as `A`, `Shift+A`, `Return`, or `F12`, then save.
 4. Hold Caps Lock and press that key to launch the app.
 
 Assigned shortcuts show the app icon and launcher name first, with the key combination on the right. The picker uses the same app library and hidden-app filters as Omarchy's Apps menu. Custom bindings that cannot be matched to a launcher entry retain their binding label and use a generic app icon. Click ✦ again, click outside the panel, or press Escape to close it. Launching uses `uwsm-app -- gtk-launch`, matching Omarchy's launcher, including terminal apps and web apps with desktop entries. It does not assign arbitrary system-menu actions. Launching an already-running app follows that app's usual launcher behavior; it does not guarantee window focusing.
 
-**Config** rows show existing Hyper bindings from Hyprland. Edit those in your existing configuration. Hyper reserves their key combinations and will not replace them. Shortcuts added in this panel can be removed here. To change an assignment, remove it and add its replacement.
+Every assigned shortcut has a **Remove** action. If a key is already in use, saving names the conflicting app and offers **Overwrite**. The backend rechecks the conflict before replacing it, so a changed assignment requires a fresh confirmation.
 
-The **Use Caps Lock as Hyper** toggle is on when Caps Lock is mapped to Hyper, including mappings in your existing Hyprland configuration. Turning it off explicitly restores normal Caps Lock. Turning it on maps Caps Lock to Hyper again. Both choices persist across restarts and preserve your saved shortcuts and unrelated keyboard options.
+Removing or overwriting a binding from your existing Hyprland config adds an `hl.unbind` to the generated file. These overrides survive reloads without editing the original binding declarations. Removing a replacement keeps the original shortcut disabled. Uninstalling removes all overrides and brings back the original bindings. Bindings inside named Hyprland submaps must still be edited in their source configuration.
+
+The header toggle is on when Caps Lock is mapped to Hyper, including mappings in your existing Hyprland configuration. Turning it off explicitly restores normal Caps Lock. Turning it on maps Caps Lock to Hyper again. Both choices persist across restarts and preserve your saved shortcuts and unrelated keyboard options.
 
 The plugin writes its override after your existing input configuration. It does not rewrite your personal `input.lua`. Uninstalling removes the override and restores the configuration you had before using the plugin.
 
@@ -63,6 +65,6 @@ python3 hyper.py status
 hyprctl configerrors
 ```
 
-Tests cover conflicting assignments, safe quoting, setup option preservation, repeated installation of the config include, removal, and rollback. On the development machine the panel was loaded in the live shell, the picker returned 63 launcher entries, and a temporary F12 assignment was registered through Hyprland and then removed. Physical keyboard behavior on a fresh Caps Lock setup still needs a manual check on a machine without a pre-existing Hyper mapping.
+Tests cover named conflicts, overwrite confirmation, physical-key removal, safe quoting, setup option preservation, repeated installation of the config include, removal, and rollback. On the development machine the panel was loaded in the live shell, the picker returned 63 launcher entries, and a temporary F12 assignment was registered through Hyprland and then removed. Physical keyboard behavior on a fresh Caps Lock setup still needs a manual check on a machine without a pre-existing Hyper mapping.
 
 Inspired by [Raycast Hyper Key](https://manual.raycast.com/hyper-key).

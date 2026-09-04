@@ -38,10 +38,25 @@ def clean(value):
 
 
 def key(value):
-    value = clean(value).upper().strip()
-    if not re.fullmatch(r'(SHIFT\+)?([A-Z0-9]|F([1-9]|1[0-2])|RETURN|SPACE|TAB|BACKSPACE|UP|DOWN|LEFT|RIGHT)', value):
-        raise ValueError('Use a letter, digit, F1–F12, Return, Space, Tab, Backspace or arrow, optionally with Shift+')
-    return value
+    value = re.sub(r'\s+', '', clean(value)).upper()
+    parts = value.split('+')
+    modifiers, symbol = parts[:-1], parts[-1]
+    if (len(set(modifiers)) != len(modifiers)
+            or any(m not in ('SUPER', 'CTRL', 'ALT', 'SHIFT') for m in modifiers)
+            or not re.fullmatch(r'[A-Z0-9_]+|CODE:[0-9]{1,3}', symbol)):
+        raise ValueError('Use a key name, optionally with Shift, Ctrl, Alt or Super')
+    return '+'.join([m for m in ('SUPER', 'CTRL', 'ALT', 'SHIFT') if m in modifiers] + [symbol])
+
+
+def combo(shortcut):
+    return 'MOD3 + ' + key(shortcut).replace('CODE:', 'code:').replace('+', ' + ')
+
+
+class Conflict(ValueError):
+    def __init__(self, shortcut, bindings):
+        self.bindings = bindings
+        super().__init__('✦ ' + shortcut + ' is already assigned to ' + ', '.join(b['name'] for b in bindings))
+
 
 
 def load():
@@ -88,7 +103,7 @@ def external_bindings():
             modifiers = ''.join(name + '+' for bit, name in ((64, 'SUPER'), (4, 'CTRL'), (8, 'ALT'), (1, 'SHIFT')) if mask & bit)
             rows.append({'key': modifiers + label,
                          'name': binding.get('description') or binding.get('arg') or 'Existing binding',
-                         'modmask': mask, 'external': True})
+                         'modmask': mask, 'external': True, 'submap': binding.get('submap', '')})
     return rows
 
 
@@ -101,11 +116,12 @@ def render(data):
     lines = [MARKER.rstrip()]
     if data['options'] is not None:
         lines.append('hl.config({ input = { kb_options = ' + lua(data['options']) + ' } })')
+    for shortcut in sorted(data.get('suppressed', [])):
+        lines.append(f'hl.unbind({lua(combo(shortcut))})')
     for shortcut, app in sorted(data['shortcuts'].items()):
-        combo = 'MOD3 + ' + key(shortcut).replace('+', ' + ')
         desktop = clean(app['id']) + '.desktop'
         command = 'uwsm-app -- gtk-launch ' + shlex.quote(desktop)
-        lines.append(f'o.bind({lua(combo)}, {lua(PREFIX + clean(app["name"]))}, {lua(command)})')
+        lines.append(f'o.bind({lua(combo(shortcut))}, {lua(PREFIX + clean(app["name"]))}, {lua(command)})')
     return '\n'.join(lines) + '\n'
 
 
@@ -133,7 +149,7 @@ def apply(data):
     if MARKER in main and hook not in main:
         raise RuntimeError('The Hyper include was edited manually. Restore it before continuing.')
     main = main.replace(hook, '')
-    if data['options'] is not None or data['shortcuts']:
+    if data['options'] is not None or data['shortcuts'] or data.get('suppressed'):
         main = main.rstrip() + '\n\n' + hook
     # Keep a first-use backup independent of subsequent transactions.
     backup = MAIN.with_name('hyprland.lua.before-hyper')
@@ -171,15 +187,29 @@ def mutate(action, args):
     elif action == 'restore':
         # Removing the override reveals the user's original input.lua settings.
         data['options'] = None
-    elif action == 'assign':
+    elif action in ('assign', 'overwrite'):
         shortcut, desktop, name = key(args[0]), clean(args[1]), clean(args[2])
         if desktop.startswith('-') or '/' in desktop:
             raise ValueError('Invalid desktop entry ID')
-        if any(b['key'] == shortcut and b['modmask'] in (32, 33) for b in external_bindings()):
-            raise ValueError('That Hyper shortcut is already assigned in your Hyprland config')
+        external = [b for b in external_bindings() if b['key'] == shortcut]
+        conflicts = [{'name': b['name'], 'external': True, 'submap': b.get('submap', '')} for b in external]
+        if shortcut in data['shortcuts']:
+            conflicts.append({'name': data['shortcuts'][shortcut]['name'], 'external': False})
+        if conflicts and (action != 'overwrite' or len(args) < 4 or json.loads(args[3]) != conflicts):
+            raise Conflict(shortcut, conflicts)
+        if any(b.get('submap') for b in external):
+            raise ValueError('This shortcut belongs to a Hyprland submap. Edit it in that configuration.')
+        if external:
+            data['suppressed'] = sorted(set(data.get('suppressed', [])) | {shortcut})
         data['shortcuts'][shortcut] = {'id': desktop, 'name': name}
     elif action == 'remove':
-        data['shortcuts'].pop(key(args[0]), None)
+        shortcut = key(args[0])
+        external = [b for b in external_bindings() if b['key'] == shortcut]
+        if any(b.get('submap') for b in external):
+            raise ValueError('This shortcut belongs to a Hyprland submap. Edit it in that configuration.')
+        if external:
+            data['suppressed'] = sorted(set(data.get('suppressed', [])) | {shortcut})
+        data['shortcuts'].pop(shortcut, None)
     elif action == 'uninstall':
         data = {'version': 1, 'options': None, 'shortcuts': {}}
     else:
@@ -197,7 +227,10 @@ def main():
             result = status() if action == 'status' else mutate(action, sys.argv[2:])
             print(json.dumps({'ok': True, **result}))
         except Exception as error:
-            print(json.dumps({'ok': False, 'error': str(error)}))
+            result = {'ok': False, 'error': str(error)}
+            if isinstance(error, Conflict):
+                result['conflicts'] = error.bindings
+            print(json.dumps(result))
             return 1
     return 0
 
