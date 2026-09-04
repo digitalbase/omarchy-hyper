@@ -121,7 +121,7 @@ Panel {
     open: root.opened
     focusTarget: content
     contentWidth: panel.fittedContentWidth(480)
-    contentHeight: panel.fittedContentHeight(570)
+    contentHeight: panel.fittedContentHeight(Style.space(690))
 
     FocusScope {
       id: content
