@@ -27,6 +27,7 @@ Panel {
   property string action: "status"
   property var selectedApp: null
   property var apps: []
+  property var catalog: []
   readonly property var library: bar && bar.shell ? bar.shell.appLibrary : null
   readonly property var rows: {
     var result = []
@@ -34,13 +35,31 @@ Panel {
     Object.keys(shortcuts).sort().forEach(function(key) {
       result.push({key: key, name: shortcuts[key].name, id: shortcuts[key].id, external: false})
     })
-    return result.concat(state.external || [])
+    return result.concat(state.external || []).map(function(row) {
+      var app = root.appForShortcut(row)
+      return {key: row.key, name: app ? app.name : row.name,
+        description: app && app.name !== row.name ? row.name : "",
+        icon: app ? app.icon : "", id: row.id, external: row.external}
+    })
   }
 
-  function refreshApps() {
-    apps = library ? library.sortedEntries(search.text).map(function(app) {
-      return {id: app.id, name: library.entryName(app), icon: app.icon}
+  function appForShortcut(row) {
+    function normalized(value) { return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "") }
+    var exact = catalog.filter(function(app) { return row.id ? app.id === row.id : normalized(app.name) === normalized(row.name) || normalized(app.id) === normalized(row.name) })
+    if (exact.length === 1) return exact[0]
+    // A short binding label can omit a vendor prefix, e.g. Chrome / Google Chrome.
+    var suffix = catalog.filter(function(app) { return app.name.toLowerCase().endsWith(" " + String(row.name).toLowerCase()) })
+    return suffix.length === 1 ? suffix[0] : null
+  }
+  function appRows(query) {
+    return library ? library.sortedEntries(query).map(function(row) {
+      var app = row.entry
+      return {id: String(app.id), name: library.entryName(app), icon: String(app.icon || "")}
     }) : []
+  }
+  function refreshApps() {
+    catalog = appRows("")
+    apps = appRows(search.text)
   }
   function request(args) {
     if (backend.running) return
@@ -53,6 +72,8 @@ Panel {
     picking = false
     selectedApp = null
     request(["status"])
+    refreshApps()
+    if (library) library.refreshIcons()
   }
   Connections {
     target: root.library
@@ -111,7 +132,6 @@ Panel {
             Text { text: "Hyper"; color: Color.foreground; font.family: Style.font.family; font.pixelSize: 24; font.bold: true }
             Text { text: root.state.active ? "Caps Lock is your Hyper key" : "Your apps, one shortcut away"; color: Color.foreground; opacity: 0.65; font.pixelSize: 13 }
           }
-          Button { text: "Close"; focusable: true; onClicked: root.close() }
         }
         Toggle {
           Layout.fillWidth: true
@@ -191,18 +211,46 @@ Panel {
                 anchors.fill: parent
                 anchors.margins: 6
                 spacing: 10
+                Image {
+                  Layout.preferredWidth: Style.font.iconLarge
+                  Layout.preferredHeight: Style.font.iconLarge
+                  fillMode: Image.PreserveAspectFit
+                  sourceSize.width: width * Screen.devicePixelRatio
+                  sourceSize.height: height * Screen.devicePixelRatio
+                  source: root.library ? root.library.iconSource(modelData.icon || "") : ""
+                  asynchronous: true
+                }
+                ColumnLayout {
+                  Layout.fillWidth: true
+                  spacing: 2
+                  Text {
+                    Layout.fillWidth: true
+                    text: modelData.name
+                    textFormat: Text.PlainText
+                    elide: Text.ElideRight
+                    color: Color.foreground
+                    font.family: Style.font.family
+                    font.pixelSize: Style.font.heading
+                    font.weight: Font.Medium
+                  }
+                  Text {
+                    Layout.fillWidth: true
+                    visible: !!modelData.description
+                    text: modelData.description || ""
+                    textFormat: Text.PlainText
+                    elide: Text.ElideRight
+                    color: Color.foreground
+                    opacity: 0.55
+                    font.family: Style.font.family
+                    font.pixelSize: Style.font.caption
+                  }
+                }
                 Text {
                   visible: !root.picking
                   text: "✦ " + (modelData.key || "custom")
-                  color: Color.accent; font.pixelSize: 13
-                  Layout.preferredWidth: 106
-                }
-                Text {
-                  Layout.fillWidth: true
-                  text: modelData.name
-                  textFormat: Text.PlainText
-                  elide: Text.ElideRight
-                  color: Color.foreground; font.pixelSize: 14
+                  color: Color.accent
+                  font.family: Style.font.family
+                  font.pixelSize: 13
                 }
                 Button {
                   visible: root.picking || !modelData.external

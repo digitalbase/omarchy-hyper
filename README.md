@@ -29,7 +29,7 @@ After publishing this repository, it can also be installed with Omarchy's normal
 3. Enter a key such as `A`, `Shift+A`, `Return`, or `F12`, then save.
 4. Hold Caps Lock and press that key to launch the app.
 
-The picker uses the same app library and hidden-app filters as Omarchy's Apps menu. Launching uses `uwsm-app -- gtk-launch`, matching Omarchy's launcher, including terminal apps and web apps with desktop entries. It does not assign arbitrary system-menu actions. Launching an already-running app follows that app's usual launcher behavior; it does not guarantee window focusing.
+Assigned shortcuts show the app icon and launcher name first, with the key combination on the right. The picker uses the same app library and hidden-app filters as Omarchy's Apps menu. Custom bindings that cannot be matched to a launcher entry retain their binding label and use a generic app icon. Click ✦ again, click outside the panel, or press Escape to close it. Launching uses `uwsm-app -- gtk-launch`, matching Omarchy's launcher, including terminal apps and web apps with desktop entries. It does not assign arbitrary system-menu actions. Launching an already-running app follows that app's usual launcher behavior; it does not guarantee window focusing.
 
 **Config** rows show existing Hyper bindings from Hyprland. Edit those in your existing configuration. Hyper reserves their key combinations and will not replace them. Shortcuts added in this panel can be removed here. To change an assignment, remove it and add its replacement.
 
