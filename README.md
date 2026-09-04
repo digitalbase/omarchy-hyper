@@ -10,8 +10,6 @@ Requires Omarchy's Lua-based Hyprland configuration, Quickshell shell, Python 3,
 
 The panel uses the shell's app library, so its picker matches the Apps launcher. A Python helper owns shortcut storage and a separate generated Hyprland Lua file. Existing user bindings are displayed alongside panel assignments and can be removed or overwritten through generated overrides. Their original Lua files remain intact.
 
-Implementation is split into focused commits: project, configuration backend, panel, and installation with verification.
-
 ## Install from this checkout
 
 ```sh
@@ -68,3 +66,13 @@ hyprctl configerrors
 Tests cover named conflicts, overwrite confirmation, physical-key removal, safe quoting, setup option preservation, repeated installation of the config include, removal, and rollback. On the development machine the panel was loaded in the live shell, the picker returned 63 launcher entries, and a temporary F12 assignment was registered through Hyprland and then removed. Physical keyboard behavior on a fresh Caps Lock setup still needs a manual check on a machine without a pre-existing Hyper mapping.
 
 Inspired by [Raycast Hyper Key](https://manual.raycast.com/hyper-key).
+
+## License
+
+[MIT](LICENSE), copyright Digitalbase.
+
+## Configuration access
+
+Hyper reads desktop entries through Omarchy's app library, current keyboard options and bindings through `hyprctl`, and literal binding declarations from `~/.config/hypr/*.lua` when Hyprland omits a physical key label. It runs a local Python helper for settings changes and launches apps through their desktop entries. It makes no network requests of its own and requires no root privileges.
+
+Enabling or disabling Hyper, saving, overwriting, and removing shortcuts changes the generated Lua file and its marked include in the main Hyprland config. Each change comes from a user action in the panel. The plugin creates a backup before its first configuration change and rolls back failed changes. Installation enables the bar widget but does not remap Caps Lock until the header toggle is used.

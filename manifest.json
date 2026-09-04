@@ -5,12 +5,17 @@
   "version": "0.1.0",
   "author": "Digitalbase",
   "description": "Caps Lock app shortcuts from a ✦ panel",
-  "kinds": ["bar-widget"],
-  "entryPoints": {"barWidget": "Panel.qml"},
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
   "barWidget": {
     "displayName": "✦ Hyper",
     "category": "Productivity",
     "allowMultiple": false,
     "defaultSection": "right"
-  }
+  },
+  "license": "MIT"
 }
