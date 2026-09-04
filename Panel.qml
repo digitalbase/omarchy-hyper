@@ -24,7 +24,7 @@ Panel {
   property var state: ({shortcuts: {}, external: [], active: false, options: null})
   property string error: ""
   property bool statusLoaded: false
-  readonly property color statusColor: state.active ? "#5fd75f" : foreground
+  readonly property color statusColor: state.active ? Color.accent : foreground
   readonly property string setupStatus: !statusLoaded ? "Checking keyboard…" : (state.active ? "Set up · Hyper enabled" : "Off · Normal Caps Lock")
   property var conflicts: []
   property bool picking: false
