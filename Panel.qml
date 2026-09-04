@@ -148,7 +148,7 @@ Panel {
               text: "✦"
               color: root.foreground
               font.family: root.fontFamily
-              font.pixelSize: Style.font.display * 1.8
+              font.pixelSize: Style.font.display * 2.1
             }
             Rectangle {
               width: Math.max(5, parent.width * 0.34)
