@@ -1,6 +1,8 @@
 # ✦ Hyper for Omarchy
 
-A native Omarchy shell plugin for Caps Lock app shortcuts. Click ✦ in the bar to set up Hyper, browse launcher apps, and manage shortcuts.
+Inspired by [Raycast's Hyper Key](https://manual.raycast.com/hyper-key), Hyper brings Caps Lock app keybindings to Omarchy. Moving from macOS? Turn Caps Lock into ✦, assign keyboard shortcuts to your apps, and manage your keybinds from a native bar panel.
+
+Click ✦ to see assigned shortcuts, choose apps from Omarchy's launcher catalog, and add or remove keybindings. Conflicting shortcuts name the existing app and offer an Overwrite action.
 
 ![Hyper panel with setup toggle, app icons, and assigned shortcuts](preview.png)
 

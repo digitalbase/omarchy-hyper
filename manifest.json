@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "id": "digitalbase.hyper",
   "name": "Hyper",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "Digitalbase",
-  "description": "Caps Lock app shortcuts from a ✦ panel",
+  "description": "Inspired by Raycast's Hyper Key for users moving from macOS to Omarchy. Turn Caps Lock into ✦ and create app keybindings to launch your apps. View, assign, overwrite, and remove keyboard shortcuts from a native bar panel.",
   "kinds": [
     "bar-widget"
   ],
@@ -15,7 +15,17 @@
     "displayName": "✦ Hyper",
     "category": "Productivity",
     "allowMultiple": false,
-    "defaultSection": "right"
+    "defaultSection": "right",
+    "description": "Inspired by Raycast's Hyper Key for users moving from macOS to Omarchy. Turn Caps Lock into ✦ and create app keybindings to launch your apps. View, assign, overwrite, and remove keyboard shortcuts from a native bar panel.",
+    "aliases": [
+      "raycast",
+      "hyper key",
+      "app keybindings",
+      "keybind",
+      "keyboard shortcuts",
+      "app launcher",
+      "caps lock"
+    ]
   },
   "license": "MIT"
 }
