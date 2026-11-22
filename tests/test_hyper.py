@@ -14,7 +14,7 @@ class HyperTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         root = Path(self.tmp.name)
-        self.paths = patch.multiple(hyper, MAIN=root / 'hyprland.lua', GENERATED=root / 'hyper.lua', STATE=root / 'state.json')
+        self.paths = patch.multiple(hyper, MAIN=root / 'hyprland.lua', GENERATED=root / 'hyper.lua', STATE=root / 'state.json', SHARED=root / 'shortcuts.json')
         self.paths.start()
         hyper.MAIN.write_text('-- personal settings\n')
 
@@ -105,6 +105,26 @@ class HyperTests(unittest.TestCase):
         with patch.object(hyper, 'options', return_value='grp:alts_toggle,caps:capslock'), patch.object(hyper, 'apply') as apply, patch.object(hyper, 'status'):
             hyper.mutate('enable', [])
             self.assertEqual(apply.call_args.args[0]['options'], 'grp:alts_toggle,caps:hyper')
+
+    def test_sync_imports_shortcuts_with_local_keyboard_options(self):
+        hyper.STATE.write_text(json.dumps({'version': 1, 'options': 'caps:capslock', 'shortcuts': {}}))
+        shared = {'version': 1, 'shortcuts': {'A': {'id': 'app', 'name': 'App'}}, 'suppressed': []}
+        hyper.SHARED.write_text(json.dumps(shared))
+        with patch.object(hyper, 'apply') as apply, patch.object(hyper, 'status'):
+            hyper.sync()
+        self.assertEqual(apply.call_args.args[0], {**shared, 'options': 'caps:capslock'})
+
+    def test_fresh_setup_overrides_preexisting_hyper_until_enabled(self):
+        with patch.object(hyper, 'options', return_value='grp:alts_toggle,caps:hyper'), patch.object(hyper, 'apply') as apply, patch.object(hyper, 'status'):
+            hyper.sync()
+        self.assertEqual(apply.call_args.args[0]['options'], 'grp:alts_toggle,caps:capslock')
+
+    def test_saving_assignments_keeps_keyboard_options_out_of_sync_file(self):
+        data = {'version': 1, 'options': 'caps:hyper', 'shortcuts': {'A': {'id': 'app', 'name': 'App'}}}
+        with patch.object(hyper, 'run', return_value=''), patch.object(hyper, 'options', return_value='caps:hyper'):
+            hyper.apply(data, publish_assignments=True)
+        self.assertEqual(json.loads(hyper.SHARED.read_text()), hyper.assignments(data))
+        self.assertEqual(json.loads(hyper.STATE.read_text())['options'], 'caps:hyper')
 
     def test_setup_keeps_unrelated_options(self):
         with patch.object(hyper, 'options', return_value='compose:caps,grp:alts_toggle'), patch.object(hyper, 'apply') as apply, patch.object(hyper, 'status'):

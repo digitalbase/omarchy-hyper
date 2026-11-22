@@ -13,6 +13,7 @@ import tempfile
 
 CONFIG = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config'))
 STATE = CONFIG / 'omarchy-hyper/state.json'
+SHARED = CONFIG / 'omarchy/extensions/digitalbase.hyper/shortcuts.json'
 MAIN = CONFIG / 'hypr/hyprland.lua'
 GENERATED = CONFIG / 'hypr/omarchy-hyper.lua'
 MARKER = '-- Managed by digitalbase.hyper\n'
@@ -68,6 +69,35 @@ def load():
     return data
 
 
+def assignments(data):
+    return {'version': 1, 'shortcuts': data.get('shortcuts', {}),
+            'suppressed': data.get('suppressed', [])}
+
+
+def with_shared(data):
+    if not SHARED.exists():
+        return data
+    shared = json.loads(SHARED.read_text())
+    if shared.get('version') != 1:
+        raise ValueError('Unsupported shared Hyper shortcuts version')
+    return {**data, **assignments(shared)}
+
+
+def keyboard_options(enabled):
+    kept = [option for option in options().split(',') if option and 'caps' not in option]
+    return ','.join(kept + ['caps:hyper' if enabled else 'caps:capslock'])
+
+
+def sync():
+    local = load()
+    data = with_shared(local)
+    if not STATE.exists() and 'caps:hyper' in options().split(','):
+        data['options'] = keyboard_options(False)
+    if data != {**local, **assignments(local)}:
+        apply(data)
+    return status()
+
+
 def options():
     return json.loads(run('hyprctl', 'getoption', 'input:kb_options', '-j'))['str']
 
@@ -108,7 +138,7 @@ def external_bindings():
 
 
 def status():
-    data = load()
+    data = with_shared(load())
     return {**data, 'active': 'caps:hyper' in options().split(','), 'external': external_bindings()}
 
 
@@ -116,7 +146,7 @@ def render(data):
     lines = [MARKER.rstrip()]
     if data['options'] is not None:
         lines.append('hl.config({ input = { kb_options = ' + lua(data['options']) + ' } })')
-    for shortcut in sorted(data.get('suppressed', [])):
+    for shortcut in sorted(set(data.get('suppressed', [])) | data['shortcuts'].keys()):
         lines.append(f'hl.unbind({lua(combo(shortcut))})')
     for shortcut, app in sorted(data['shortcuts'].items()):
         desktop = clean(app['id']) + '.desktop'
@@ -137,7 +167,7 @@ def atomic(path, content):
             os.unlink(name)
 
 
-def apply(data):
+def apply(data, *, publish_assignments=False):
     if not MAIN.exists():
         raise RuntimeError('This plugin requires Omarchy with hypr/hyprland.lua')
     baseline = run('hyprctl', 'configerrors')
@@ -145,6 +175,8 @@ def apply(data):
         raise RuntimeError('Fix existing Hyprland configuration errors first: ' + baseline)
     hook = MARKER + 'dofile(' + lua(str(GENERATED)) + ')\n'
     before = {p: p.read_text() if p.exists() else None for p in (MAIN, GENERATED, STATE)}
+    if publish_assignments:
+        before[SHARED] = SHARED.read_text() if SHARED.exists() else None
     main = before[MAIN]
     if MARKER in main and hook not in main:
         raise RuntimeError('The Hyper include was edited manually. Restore it before continuing.')
@@ -165,6 +197,8 @@ def apply(data):
         if data['options'] is not None and options() != data['options']:
             raise RuntimeError('Another keyboard setting overrides Hyper')
         atomic(STATE, json.dumps(data, indent=2, ensure_ascii=False) + '\n')
+        if publish_assignments:
+            atomic(SHARED, json.dumps(assignments(data), indent=2, ensure_ascii=False) + '\n')
     except Exception:
         for path, content in before.items():
             if content is None:
@@ -176,14 +210,9 @@ def apply(data):
 
 
 def mutate(action, args):
-    data = copy.deepcopy(load())
+    data = copy.deepcopy(with_shared(load()))
     if action in ('enable', 'disable'):
-        current = options()
-        # An explicit override also handles Hyper set in an existing input.lua.
-        # Keep layout-switching and other non-Caps options intact.
-        kept = [p for p in current.split(',') if p and 'caps' not in p]
-        target = 'caps:hyper' if action == 'enable' else 'caps:capslock'
-        data['options'] = ','.join(kept + [target])
+        data['options'] = keyboard_options(action == 'enable')
     elif action == 'restore':
         # Removing the override reveals the user's original input.lua settings.
         data['options'] = None
@@ -214,7 +243,10 @@ def mutate(action, args):
         data = {'version': 1, 'options': None, 'shortcuts': {}}
     else:
         raise ValueError('Unknown action')
-    apply(data)
+    if action in ('assign', 'overwrite', 'remove'):
+        apply(data, publish_assignments=True)
+    else:
+        apply(data)
     return status()
 
 
@@ -224,7 +256,12 @@ def main():
         fcntl.flock(lock, fcntl.LOCK_EX)
         try:
             action = sys.argv[1] if len(sys.argv) > 1 else 'status'
-            result = status() if action == 'status' else mutate(action, sys.argv[2:])
+            if action == 'sync':
+                result = sync()
+            elif action == 'status':
+                result = status()
+            else:
+                result = mutate(action, sys.argv[2:])
             print(json.dumps({'ok': True, **result}))
         except Exception as error:
             result = {'ok': False, 'error': str(error)}

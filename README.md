@@ -41,7 +41,7 @@ Every assigned shortcut has a **Remove** action. If a key is already in use, sav
 
 Removing or overwriting a binding from your existing Hyprland config adds an `hl.unbind` to the generated file. These overrides survive reloads without editing the original binding declarations. Removing a replacement keeps the original shortcut disabled. Uninstalling removes all overrides and brings back the original bindings. Bindings inside named Hyprland submaps must still be edited in their source configuration.
 
-The header toggle is on when Caps Lock is mapped to Hyper, including mappings in your existing Hyprland configuration. Turning it off explicitly restores normal Caps Lock. Turning it on maps Caps Lock to Hyper again. Both choices persist across restarts and preserve your saved shortcuts and unrelated keyboard options.
+Hyper starts off on a fresh installation. Turn it on in the panel to give Caps Lock the Hyper modifier instead of toggling capitalization. Turning it off explicitly restores normal Caps Lock. Turning it on maps Caps Lock to Hyper again. Both choices persist across restarts and preserve your saved shortcuts and unrelated keyboard options.
 
 The plugin writes its override after your existing input configuration. It does not rewrite your personal `input.lua`. Uninstalling removes the override and restores the configuration you had before using the plugin.
 
@@ -53,7 +53,9 @@ omarchy-shell digitalbase.hyper info
 
 ## Storage and removal
 
-Settings live in `$XDG_CONFIG_HOME/omarchy-hyper/state.json`, defaulting to `~/.config`. The helper generates `hypr/omarchy-hyper.lua` and appends a marked `dofile` to `hypr/hyprland.lua`. It backs up the original main file to `hyprland.lua.before-hyper`, checks configuration errors, and restores the previous files if applying a change fails. Writes are serialized with a file lock.
+Machine-local keyboard settings and the last applied shortcuts live in `$XDG_CONFIG_HOME/omarchy-hyper/state.json`, defaulting to `~/.config`. The panel saves assignments and explicit removals to `$XDG_CONFIG_HOME/omarchy/extensions/digitalbase.hyper/shortcuts.json`. Config Sync can publish and apply that file under its extensions group. It carries desktop entry IDs, so the corresponding apps need to be installed on each machine. Keep the generated Lua and keyboard settings local. The panel loads incoming assignments on startup, when the file changes, and when opened.
+
+The helper generates `hypr/omarchy-hyper.lua` and appends a marked `dofile` to `hypr/hyprland.lua`. It backs up the original main file to `hyprland.lua.before-hyper`, checks configuration errors, and restores the previous files if applying a change fails. Writes are serialized with a file lock.
 
 Restore keyboard settings and remove this local installation:
 

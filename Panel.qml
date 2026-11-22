@@ -75,11 +75,27 @@ Panel {
     backend.command = ["python3", Qt.resolvedUrl("hyper.py").toString().replace(/^file:\/\//, "")].concat(args)
     backend.running = true
   }
+  FileView {
+    path: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config")
+      + "/omarchy/extensions/digitalbase.hyper/shortcuts.json"
+    watchChanges: true
+    printErrors: false
+    onFileChanged: syncTimer.restart()
+  }
+  Timer {
+    id: syncTimer
+    interval: 150
+    onTriggered: {
+      if (backend.running) restart()
+      else root.request(["sync"])
+    }
+  }
+  Component.onCompleted: syncTimer.start()
   onOpenedChanged: if (opened) {
     picking = false
     selectedApp = null
     conflicts = []
-    request(["status"])
+    syncTimer.restart()
     refreshApps()
     if (library) library.refreshIcons()
   }
@@ -232,6 +248,7 @@ Panel {
             fontFamily: root.fontFamily
             fontSize: Style.font.bodySmall
             text: root.picking ? "Back" : "+ Add shortcut"; focusable: true; bordered: true
+            enabled: root.state.active && !backend.running
             onClicked: { root.picking = !root.picking; root.selectedApp = null; search.text = ""; root.refreshApps() }
           }
         }
