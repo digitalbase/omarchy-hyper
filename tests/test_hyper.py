@@ -128,6 +128,21 @@ class HyperTests(unittest.TestCase):
         self.assertEqual(json.loads(hyper.SHARED.read_text()), hyper.assignments(data))
         self.assertEqual(json.loads(hyper.STATE.read_text())['options'], 'caps:hyper')
 
+    def test_command_assignment_renders_as_launcher_invocation(self):
+        with patch.object(hyper, 'external_bindings', return_value=[]), patch.object(hyper, 'apply') as apply, patch.object(hyper, 'status'):
+            hyper.mutate('assign', ['A', 'builtin:clipboard-history', 'Clipboard History', '', 'omacast'])
+        data = apply.call_args.args[0]
+        self.assertEqual(data['shortcuts']['A']['kind'], 'omacast')
+        self.assertIn("invoke omacast builtin:clipboard-history", hyper.render(data))
+
+    def test_confirmation_returns_to_omacast_without_running_directly(self):
+        row = {'id': 'script:example'}
+        with patch.object(hyper.commands, 'omacast_rows', return_value=[row]), patch.object(hyper.commands, 'call_omacast', return_value={'confirm': {'title': 'Confirm'}}) as call, patch.object(hyper.commands, 'show_omacast') as show, patch.object(hyper.commands.subprocess, 'run') as run:
+            hyper.commands.invoke('omacast', row['id'], 'Example')
+        self.assertNotIn('confirmed', call.call_args.args[1])
+        show.assert_called_once_with('Example')
+        run.assert_not_called()
+
     def test_setup_keeps_unrelated_options(self):
         with patch.object(hyper, 'options', return_value='compose:caps,grp:alts_toggle'), patch.object(hyper, 'apply') as apply, patch.object(hyper, 'status'):
             hyper.mutate('enable', [])

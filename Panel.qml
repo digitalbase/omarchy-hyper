@@ -20,7 +20,8 @@ Panel {
     function close(): void { root.close() }
     function toggle(): void { root.toggle() }
     function add(): void { root.open(); root.picking = true; root.selectedApp = null; root.refreshApps() }
-    function info(): string { return JSON.stringify({view: root.picking ? "apps" : "shortcuts", apps: root.apps.length, shortcuts: root.rows, error: root.error}) }
+    function commands(query: string): void { add(); search.text = query; root.pickCommands() }
+    function info(): string { return JSON.stringify({view: root.picking ? (root.commandMode ? "commands" : "apps") : "shortcuts", apps: root.apps.length, commands: root.commandRows.length, shortcuts: root.rows, error: root.error}) }
   }
   property var state: ({shortcuts: {}, external: [], active: false, options: null})
   property string error: ""
@@ -32,6 +33,9 @@ Panel {
   property string action: "status"
   property var selectedApp: null
   property var apps: []
+  property bool commandMode: false
+  property var commandRows: []
+  property string commandError: ""
   property var catalog: []
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
   readonly property color foreground: bar ? bar.foreground : OmarchyCompatCommons.Color.foreground
@@ -85,6 +89,37 @@ Panel {
     catalog = appRows("")
     apps = search.text.trim() ? appRows(search.text) : catalog
   }
+  function pickCommands() {
+    commandMode = true
+    commandRows = []
+    commandTimer.restart()
+  }
+  Timer {
+    id: commandTimer
+    interval: 150
+    onTriggered: {
+      if (!root.picking || !root.commandMode) return
+      if (commandSearch.running) { restart(); return }
+      commandSearch.query = search.text
+      commandSearch.command = ["python3", Qt.resolvedUrl("hyper.py").toString().replace(/^file:\/\//, ""), "commands", commandSearch.query]
+      commandSearch.running = true
+    }
+  }
+  Process {
+    id: commandSearch
+    property string query: ""
+    stdout: StdioCollector {
+      onStreamFinished: {
+        if (!root.commandMode || search.text !== commandSearch.query || !text.trim()) return
+        root.commandError = ""
+        try { root.commandRows = JSON.parse(text) }
+        catch (error) { root.commandError = "Could not load commands." }
+      }
+    }
+    stderr: StdioCollector {
+      onStreamFinished: if (root.commandMode && search.text === commandSearch.query && text.trim()) root.commandError = text.trim()
+    }
+  }
   function request(args) {
     if (backend.running) return
     error = ""
@@ -111,6 +146,7 @@ Panel {
   Component.onCompleted: syncTimer.start()
   onOpenedChanged: if (opened) {
     picking = false
+    commandMode = false
     selectedApp = null
     conflicts = []
     syncTimer.restart()
@@ -134,7 +170,7 @@ Panel {
           if (result.ok) {
             root.state = result
             root.statusLoaded = true
-            if (root.action === "assign" || root.action === "overwrite") { root.picking = false; root.selectedApp = null }
+            if (root.action === "assign" || root.action === "overwrite") { root.picking = false; root.commandMode = false; root.selectedApp = null }
           }
           else { root.error = result.error; root.conflicts = result.conflicts || [] }
         } catch (e) { root.error = "Could not read Hyper settings. " + text }
@@ -263,7 +299,7 @@ Panel {
           Layout.fillWidth: true
           Text {
             Layout.fillWidth: true
-            text: root.picking ? (root.selectedApp ? "Choose a key" : "Choose an app") : "Your shortcuts · " + root.rows.length
+            text: root.picking ? (root.selectedApp ? "Choose a key" : (root.commandMode ? "Choose a command" : "Choose an app")) : "Your shortcuts · " + root.rows.length
             color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body; font.bold: true
           }
           Button {
@@ -271,15 +307,28 @@ Panel {
             fontSize: Style.font.bodySmall
             text: root.picking ? "Back" : "+ Add shortcut"; focusable: true; bordered: true
             enabled: root.state.active && !backend.running
-            onClicked: { root.picking = !root.picking; root.selectedApp = null; search.text = ""; root.refreshApps() }
+            onClicked: { root.picking = !root.picking; root.commandMode = false; root.selectedApp = null; search.text = ""; root.refreshApps() }
+          }
+        }
+        Button {
+          visible: root.picking && !root.selectedApp
+          text: root.commandMode ? "Apps" : "Commands"
+          fontFamily: root.fontFamily
+          fontSize: Style.font.bodySmall
+          focusable: true
+          bordered: true
+          onClicked: {
+            if (root.commandMode) { root.commandMode = false; root.refreshApps() }
+            else root.pickCommands()
+            search.forceActiveFocus()
           }
         }
         TextField {
           id: search
           visible: root.picking && !root.selectedApp
           Layout.fillWidth: true
-          placeholderText: "Search apps…"
-          onTextChanged: root.refreshApps()
+          placeholderText: root.commandMode ? "Search commands…" : "Search apps…"
+          onTextChanged: { if (root.commandMode) commandTimer.restart(); else root.refreshApps() }
         }
         ColumnLayout {
           visible: root.picking && root.selectedApp !== null
@@ -303,7 +352,7 @@ Panel {
             text: "Save ✦ shortcut"; focusable: true; bordered: true
             enabled: !backend.running && shortcut.text.trim() !== ""
             onClicked: {
-              root.request(["assign", shortcut.text, root.selectedApp.id, root.selectedApp.name])
+              root.request(["assign", shortcut.text, root.selectedApp.id, root.selectedApp.name, "", root.selectedApp.kind || "app"])
             }
           }
           Button {
@@ -314,7 +363,7 @@ Panel {
             focusable: true
             bordered: true
             enabled: !backend.running
-            onClicked: root.request(["overwrite", shortcut.text, root.selectedApp.id, root.selectedApp.name, JSON.stringify(root.conflicts)])
+            onClicked: root.request(["overwrite", shortcut.text, root.selectedApp.id, root.selectedApp.name, JSON.stringify(root.conflicts), root.selectedApp.kind || "app"])
           }
         }
         Controls.ScrollView {
@@ -324,7 +373,7 @@ Panel {
           visible: !root.selectedApp
           ListView {
             id: list
-            model: root.picking ? root.apps : root.rows
+            model: root.picking ? (root.commandMode ? root.commandRows : root.apps) : root.rows
             spacing: Style.space(4)
             delegate: Rectangle {
               required property var modelData
@@ -411,7 +460,7 @@ Panel {
             Text {
               anchors.centerIn: parent
               visible: list.count === 0
-              text: root.picking ? "No matching apps" : "Add your first app shortcut"
+              text: root.picking ? (root.commandMode ? (root.commandError || "No matching commands") : "No matching apps") : "Add your first app shortcut"
               color: root.foreground; opacity: 0.6
             }
           }

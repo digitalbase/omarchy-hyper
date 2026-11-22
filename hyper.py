@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Transactional, user-owned Hyper configuration. No privileged changes."""
 import copy
+import commands
 import fcntl
 import json
 import os
@@ -150,7 +151,14 @@ def render(data):
         lines.append(f'hl.unbind({lua(combo(shortcut))})')
     for shortcut, app in sorted(data['shortcuts'].items()):
         desktop = clean(app['id']) + '.desktop'
-        command = 'uwsm-app -- gtk-launch ' + shlex.quote(desktop)
+        kind = app.get('kind', 'app')
+        if kind == 'app':
+            command = 'uwsm-app -- gtk-launch ' + shlex.quote(desktop)
+        elif kind in ('menu', 'omacast'):
+            command = shlex.join(['python3', str(Path(__file__).absolute()),
+                                  'invoke', kind, clean(app['id']), clean(app['name'])])
+        else:
+            raise ValueError('Unknown Hyper shortcut target')
         lines.append(f'o.bind({lua(combo(shortcut))}, {lua(PREFIX + clean(app["name"]))}, {lua(command)})')
     return '\n'.join(lines) + '\n'
 
@@ -220,7 +228,10 @@ def mutate(action, args):
         data['options'] = None
     elif action in ('assign', 'overwrite'):
         shortcut, desktop, name = key(args[0]), clean(args[1]), clean(args[2])
-        if desktop.startswith('-') or '/' in desktop:
+        kind = args[4] if len(args) > 4 else 'app'
+        if kind not in ('app', 'menu', 'omacast'):
+            raise ValueError('Unknown Hyper shortcut target')
+        if desktop.startswith('-') or (kind == 'app' and '/' in desktop):
             raise ValueError('Invalid desktop entry ID')
         external = [b for b in external_bindings() if b['key'] == shortcut]
         conflicts = [{'name': b['name'], 'external': True, 'submap': b.get('submap', '')} for b in external]
@@ -233,6 +244,8 @@ def mutate(action, args):
         if external:
             data['suppressed'] = sorted(set(data.get('suppressed', [])) | {shortcut})
         data['shortcuts'][shortcut] = {'id': desktop, 'name': name}
+        if kind != 'app':
+            data['shortcuts'][shortcut]['kind'] = kind
     elif action == 'remove':
         shortcut = key(args[0])
         external = [b for b in external_bindings() if b['key'] == shortcut]
@@ -253,6 +266,16 @@ def mutate(action, args):
 
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] in ('commands', 'invoke'):
+        try:
+            if sys.argv[1] == 'commands':
+                print(json.dumps(commands.catalog(sys.argv[2])))
+            else:
+                commands.invoke(*sys.argv[2:])
+        except Exception as error:
+            print(str(error), file=sys.stderr)
+            return 1
+        return 0
     STATE.parent.mkdir(parents=True, exist_ok=True)
     with (STATE.parent / '.lock').open('w') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
