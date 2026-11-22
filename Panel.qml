@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Io
 import qs.Ui
 import qs.Commons
+import qs.Commons as OmarchyCompatCommons
 
 Panel {
   id: root
@@ -24,7 +25,7 @@ Panel {
   property var state: ({shortcuts: {}, external: [], active: false, options: null})
   property string error: ""
   property bool statusLoaded: false
-  readonly property color statusColor: state.active ? Color.accent : foreground
+  readonly property color statusColor: state.active ? OmarchyCompatCommons.Color.accent : foreground
   readonly property string setupStatus: !statusLoaded ? "Checking keyboard…" : (state.active ? "Set up · ✦ Hyper enabled" : "Off · Normal Caps Lock")
   property var conflicts: []
   property bool picking: false
@@ -33,7 +34,7 @@ Panel {
   property var apps: []
   property var catalog: []
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
-  readonly property color foreground: bar ? bar.foreground : Color.foreground
+  readonly property color foreground: bar ? bar.foreground : OmarchyCompatCommons.Color.foreground
   readonly property var library: bar && bar.shell ? bar.shell.appLibrary : null
   readonly property var rows: {
     var result = []
@@ -174,7 +175,7 @@ Panel {
               anchors.bottom: parent.bottom
               color: root.statusColor
               border.width: 1
-              border.color: Color.popups.background
+              border.color: OmarchyCompatCommons.Color.popups.background
             }
           }
 
@@ -235,7 +236,7 @@ Panel {
           Layout.fillWidth: true
           visible: root.error !== ""
           text: root.error; textFormat: Text.PlainText
-          wrapMode: Text.Wrap; color: Color.accent; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall
+          wrapMode: Text.Wrap; color: OmarchyCompatCommons.Color.accent; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall
         }
         RowLayout {
           Layout.fillWidth: true
@@ -264,7 +265,7 @@ Panel {
           Layout.fillWidth: true
           Text {
             text: root.selectedApp ? root.selectedApp.name : ""
-            textFormat: Text.PlainText; color: Color.accent; font.family: root.fontFamily; font.pixelSize: Style.font.subtitle
+            textFormat: Text.PlainText; color: OmarchyCompatCommons.Color.accent; font.family: root.fontFamily; font.pixelSize: Style.font.subtitle
           }
           TextField {
             id: shortcut
@@ -309,7 +310,7 @@ Panel {
               width: list.width
               height: 52
               radius: 5
-              color: appMouse.containsMouse || activeFocus ? Style.hoverFillFor(root.foreground, Color.accent) : (index % 2 ? Qt.rgba(1, 1, 1, 0.035) : "transparent")
+              color: appMouse.containsMouse || activeFocus ? Style.hoverFillFor(root.foreground, OmarchyCompatCommons.Color.accent) : (index % 2 ? Qt.rgba(1, 1, 1, 0.035) : "transparent")
               required property int index
               activeFocusOnTab: root.picking
               function chooseApp() {
@@ -371,7 +372,7 @@ Panel {
                 Text {
                   visible: !root.picking
                   text: "✦ " + (modelData.key || "custom")
-                  color: Color.accent
+                  color: OmarchyCompatCommons.Color.accent
                   font.family: root.fontFamily
                   font.pixelSize: Style.font.bodySmall
                 }
