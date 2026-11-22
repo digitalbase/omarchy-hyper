@@ -180,9 +180,11 @@ def apply(data, *, publish_assignments=False):
     main = before[MAIN]
     if MARKER in main and hook not in main:
         raise RuntimeError('The Hyper include was edited manually. Restore it before continuing.')
-    main = main.replace(hook, '')
     if data['options'] is not None or data['shortcuts'] or data.get('suppressed'):
-        main = main.rstrip() + '\n\n' + hook
+        if hook not in main:
+            main = main.rstrip() + '\n\n' + hook
+    else:
+        main = main.replace(hook, '')
     # Keep a first-use backup independent of subsequent transactions.
     backup = MAIN.with_name('hyprland.lua.before-hyper')
     if not backup.exists():

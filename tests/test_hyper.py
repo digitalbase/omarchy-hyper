@@ -37,8 +37,10 @@ class HyperTests(unittest.TestCase):
     def test_hook_idempotent_and_removal_preserves_user_config(self, run):
         data = {'version': 1, 'options': None, 'shortcuts': {'A': {'id': 'test', 'name': 'Test'}}}
         hyper.apply(data)
+        entrypoint = hyper.MAIN.read_text() + '-- local overrides\n'
+        hyper.MAIN.write_text(entrypoint)
         hyper.apply(data)
-        self.assertEqual(hyper.MAIN.read_text().count(hyper.MARKER), 1)
+        self.assertEqual(hyper.MAIN.read_text(), entrypoint)
         data['shortcuts'] = {}
         hyper.apply(data)
         self.assertNotIn(hyper.MARKER, hyper.MAIN.read_text())
