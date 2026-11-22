@@ -59,14 +59,31 @@ Panel {
     return suffix.length === 1 ? suffix[0] : null
   }
   function appRows(query) {
-    return library ? library.sortedEntries(query).map(function(row) {
-      var app = row.entry
-      return {id: String(app.id), name: library.entryName(app), icon: String(app.icon || "")}
-    }) : []
+    if (library) {
+      return library.sortedEntries(query).map(function(row) {
+        var app = row.entry
+        return {id: String(app.id), name: library.entryName(app), icon: String(app.icon || "")}
+      })
+    }
+
+    var needle = query.trim().toLowerCase()
+    return (DesktopEntries.applications.values || []).filter(function(app) {
+      return app && app.id && app.name && !app.noDisplay &&
+        (app.name.toLowerCase().includes(needle) || app.id.toLowerCase().includes(needle))
+    }).map(function(app) {
+      return {id: String(app.id), name: String(app.name), icon: String(app.icon || "")}
+    }).sort(function(left, right) {
+      return left.name.localeCompare(right.name) || left.id.localeCompare(right.id)
+    })
+  }
+  function appIcon(icon) {
+    if (library) return library.iconSource(icon)
+    if (icon.startsWith("/")) return Qt.resolvedUrl("file://" + icon)
+    return Quickshell.iconPath(icon || "application-x-executable", true)
   }
   function refreshApps() {
     catalog = appRows("")
-    apps = appRows(search.text)
+    apps = search.text.trim() ? appRows(search.text) : catalog
   }
   function request(args) {
     if (backend.running) return
@@ -103,6 +120,10 @@ Panel {
   Connections {
     target: root.library
     function onAppsChanged() { if (root.opened) root.refreshApps() }
+  }
+  Connections {
+    target: DesktopEntries.applications
+    function onValuesChanged() { if (root.opened && !root.library) root.refreshApps() }
   }
   Process {
     id: backend
@@ -341,7 +362,7 @@ Panel {
                   fillMode: Image.PreserveAspectFit
                   sourceSize.width: width * Screen.devicePixelRatio
                   sourceSize.height: height * Screen.devicePixelRatio
-                  source: root.library ? root.library.iconSource(modelData.icon || "") : ""
+                  source: root.appIcon(modelData.icon || "")
                   asynchronous: true
                 }
                 ColumnLayout {

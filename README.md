@@ -12,7 +12,7 @@ Requires Omarchy's Lua-based Hyprland configuration, Quickshell shell, Python 3,
 
 ## Development
 
-The panel uses the shell's app library, so its picker matches the Apps launcher. A Python helper owns shortcut storage and a separate generated Hyprland Lua file. Existing user bindings are displayed alongside panel assignments and can be removed or overwritten through generated overrides. Their original Lua files remain intact.
+The panel uses the shell’s app library when available and Quickshell’s desktop entries otherwise. A Python helper owns shortcut storage and a separate generated Hyprland Lua file. Existing user bindings are displayed alongside panel assignments and can be removed or overwritten through generated overrides. Their original Lua files remain intact.
 
 ## Install from this checkout
 
@@ -35,7 +35,7 @@ omarchy plugin add https://github.com/digitalbase/omarchy-hyper --enable --yes
 3. Enter a key such as `A`, `Shift+A`, `Return`, or `F12`, then save.
 4. Hold Caps Lock and press that key to launch the app.
 
-Assigned shortcuts show the app icon and launcher name first, with the key combination on the right. The picker uses the same app library and hidden-app filters as Omarchy's Apps menu. Custom bindings that cannot be matched to a launcher entry retain their binding label and use a generic app icon. Click ✦ again, click outside the panel, or press Escape to close it. Launching uses `uwsm-app -- gtk-launch`, matching Omarchy's launcher, including terminal apps and web apps with desktop entries. It does not assign arbitrary system-menu actions. Launching an already-running app follows that app's usual launcher behavior; it does not guarantee window focusing.
+Assigned shortcuts show the app icon and launcher name first, with the key combination on the right. Where Omarchy limits app-library access to menu plugins, Hyper lists visible desktop entries directly. Custom bindings that cannot be matched to a launcher entry retain their binding label and use a generic app icon. Click ✦ again, click outside the panel, or press Escape to close it. Launching uses `uwsm-app -- gtk-launch`, matching Omarchy's launcher, including terminal apps and web apps with desktop entries. It does not assign arbitrary system-menu actions. Launching an already-running app follows that app's usual launcher behavior; it does not guarantee window focusing.
 
 Every assigned shortcut has a **Remove** action. If a key is already in use, saving names the conflicting app and offers **Overwrite**. The backend rechecks the conflict before replacing it, so a changed assignment requires a fresh confirmation.
 
